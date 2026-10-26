@@ -1,0 +1,41 @@
+---
+- name: Initialize Kubernetes control plane
+  ansible.builtin.command:
+    cmd: >
+      kubeadm init
+      --pod-network-cidr={{ pod_network_cidr }}
+    creates: /etc/kubernetes/admin.conf
+
+- name: Create .kube directory
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.kube"
+    state: directory
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: '0700'
+
+- name: Copy Kubernetes admin configuration
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ ansible_env.HOME }}/.kube/config"
+    remote_src: true
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: '0600'
+
+- name: Install CNI plugin
+  ansible.builtin.command:
+    cmd: kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f {{ cni }}
+  register: cni_apply
+  changed_when: "'configured' in cni_apply.stdout or 'created' in cni_apply.stdout"
+
+- name: Allow workloads on control-plane node
+  ansible.builtin.command:
+    cmd: >
+      kubectl taint nodes --all
+      node-role.kubernetes.io/control-plane-
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  failed_when:
+    - result.rc != 0
+    - "'not found' not in result.stderr"

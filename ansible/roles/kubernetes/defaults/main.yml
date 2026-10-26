@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MIT-0
+---
+# defaults file for roles/kubernetes
+
+kubernetes_apt_version: "1.37"
+
+kubernetes_apt_repo: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/"
+
+kubernetes_api_port: 6443
+
+pod_network_cidr: 10.244.0.0/16
+
+kubernetes_packages:
+  - kubelet
+  - kubeadm
+  - kubectl
+  - cri-tools
+
+cni: https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gpg
+  - gnupg
+  - lsb-release
+  - ufw

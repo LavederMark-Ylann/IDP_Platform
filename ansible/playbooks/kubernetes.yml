@@ -1,0 +1,8 @@
+---
+- name: Setup Kubernetes cluster through kubeadm
+  hosts: kube_control_plane
+  become: true
+  become_user: root
+
+  roles:
+    - kubernetes

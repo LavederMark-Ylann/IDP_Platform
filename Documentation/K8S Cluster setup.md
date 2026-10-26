@@ -154,6 +154,98 @@ kubectl get nodes
 NAME       STATUS     ROLES           AGE     VERSION
 blaikies   NotReady   control-plane   7h50m   v1.37.0
 ```
-Now it seems like everything works in order.
+Now it seems better. The problem we have now with the status `NotReady`.
 
-The next step will be setting up local stack in this newly created Kubernetes cluster.
+kubectl cluster-info 
+```
+Kubernetes control plane is running at https://172.30.230.200:6443
+CoreDNS is running at https://172.30.230.200:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+```
+
+kubectl cluster-info dump | grep error
+```
+"message": "container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: cni plugin not initialized"
+```
+I forgot to install a CNI. By looking at the [CNCF Landscape](https://landscape.cncf.io/guide#runtime--cloud-native-network), there are multiple option we could select; Flannel, Calico and Cilium are among the most widely used and known CNI solutions, each with different features and levels of complexity.
+For this training, I will use Flannel due to its simplicity.
+
+Furthermore, I will later set up another cluster using Kubespray to build a more production-ready environment.
+
+kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+```
+namespace/kube-flannel created
+serviceaccount/flannel created
+clusterrole.rbac.authorization.k8s.io/flannel created
+clusterrolebinding.rbac.authorization.k8s.io/flannel created
+configmap/kube-flannel-cfg created
+daemonset.apps/kube-flannel-ds created
+```
+
+Waiting few seconds, the command kubectl get nodes -w gives this output
+
+```
+NAME       STATUS     ROLES           AGE     VERSION
+blaikies   NotReady   control-plane   5d16h   v1.37.0
+blaikies   Ready      control-plane   5d16h   v1.37.0
+blaikies   Ready      control-plane   5d16h   v1.37.0
+```
+
+Making the cluster operational.
+
+Let's try creating a resource.
+
+kubectl create ns argo
+kubectl config set-context --current -n argo
+helm install my-argo-cd argo/argo-cd --version 10.9.2
+
+```
+Error: INSTALLATION FAILED: failed pre-install: resource Job/argo/my-argo-cd-argocd-redis-secret-init not ready. status: InProgress, message: Job in progress
+context deadline exceeded
+``` 
+
+Doesn't work, let's investigate.
+
+helm uninstall my-argo-cd
+```
+These resources were kept due to the resource policy:
+[CustomResourceDefinition] applications.argoproj.io
+[CustomResourceDefinition] applicationsets.argoproj.io
+[CustomResourceDefinition] appprojects.argoproj.io
+
+release "my-argo-cd" uninstalled
+```
+
+kubectl events
+```
+LAST SEEN             TYPE      REASON             OBJECT                                          MESSAGE
+12m                   Normal    SuccessfulCreate   Job/my-argo-cd-argocd-redis-secret-init         Created pod: my-argo-cd-argocd-redis-secret-init-hwn6q
+2m41s (x3 over 12m)   Warning   FailedScheduling   Pod/my-argo-cd-argocd-redis-secret-init-hwn6q   0/1 nodes are available: 1 node(s) had untolerated taint(s). preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling.
+```
+
+It seems like kubeadm is tainting the control-plane node with NoScheduling, which means no node appears during the node eligibility phase ib the SchedulerController process.
+
+Let's remove this.
+
+kubectl describe nodes
+```
+...
+Taints:             node-role.kubernetes.io/control-plane:NoSchedule
+...
+```
+kubectl taint node blaikies node-role.kubernetes.io/control-plane:NoSchedule-
+```
+
+node/blaikies untainted.
+
+Let's retry installing argoCD... Still didn't work. The problem is with Flannel. As I didn't specify a pod cidr, Flannel cannot initialize properly.
+
+Another fresh install, but this time by specifying cidr:
+```
+kubeadm init --pod-network-cidr=10.244.0.0/16
+```
+
+
+
+The next step will be converting these steps into an Ansible role.

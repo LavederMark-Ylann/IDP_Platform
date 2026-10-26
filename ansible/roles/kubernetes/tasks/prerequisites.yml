@@ -1,0 +1,45 @@
+---
+- name: Install required packages
+  ansible.builtin.apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: true
+
+- name: Disable swap immediately
+  ansible.builtin.command:
+    cmd: swapoff -a
+  when: ansible_swaptotal_mb | int > 0
+  changed_when: true
+
+- name: Disable swap permanently
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^(\s*[^#]\S*\s+none\s+swap\s+.*)$'
+    replace: '# \1'
+
+- name: Enable IPv4 forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: true
+
+- name: Allow packets from bridged interfaces to be processed by iptables in ipv4
+  ansible.posix.sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: '1'
+    state: present
+    reload: true
+
+- name: Allow packets from bridged interfaces to be processed by iptables in ipv6
+  ansible.posix.sysctl:
+    name: net.bridge.bridge-nf-call-ip6tables
+    value: '1'
+    state: present
+    reload: true
+
+- name: Allow Kubernetes API server through firewall
+  community.general.ufw:
+    rule: allow
+    port: "{{ kubernetes_api_port }}"
+    proto: tcp
