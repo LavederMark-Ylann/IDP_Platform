@@ -36,3 +36,27 @@ module "security" {
 
   vpc_id = module.network.vpc_id
 }
+
+module "eks" {
+  source = "./modules/eks"
+
+  cluster_name = "idp-platform-eks"
+  vpc_id       = module.network.vpc_id
+  # Free-tier / no-NAT: run nodes in public subnets
+  subnet_ids   = module.network.public_subnets_id
+}
+
+module "finops" {
+  source = "./modules/finops"
+
+  monthly_limit_usd = 50
+  alert_email       = "" # set your email to receive alerts
+  project_tag       = "IDP_Platform"
+}
+
+module "argocd" {
+  source = "./modules/argocd"
+
+  cluster_name = "idp-platform-eks"
+  depends_on   = [module.eks]
+}

@@ -80,7 +80,47 @@ resource "aws_iam_role_policy" "terraform_networkpolicy" {
         "ec2:DeleteSecurityGroup",
         "ec2:RevokeSecurityGroupEgress",
         "ec2:AuthorizeSecurityGroupEgress",
-        "ec2:DescribeSecurityGroupRules"
+        "ec2:DescribeSecurityGroupRules",
+        // NAT Gateway
+        "ec2:CreateNatGateway",
+        // EKS
+        "eks:CreateCluster",
+        "eks:DescribeCluster",
+        "eks:DeleteCluster",
+        "eks:CreateNodegroup",
+        "eks:DescribeNodegroup",
+        "eks:DeleteNodegroup",
+        "eks:TagResource",
+        "eks:CreateAddon",
+        "eks:DescribeAddon",
+        "eks:DeleteAddon",
+        // EKS Role
+        "iam:CreateRole",
+        "iam:GetRole",
+        "iam:DeleteRole",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:PassRole",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole",
+        "iam:CreateServiceLinkedRole",
+        "ec2:ReleaseAddress",
+        // EC2
+        "ec2:DescribeAddresses",
+        "ec2:DescribeAddressesAttribute",
+        "ec2:AllocateAddress",
+        // FinOps
+        "budgets:CreateBudget",
+        "budgets:DescribeBudgets",
+        "budgets:ModifyBudget",
+        "budgets:DeleteBudget",
+        "ce:CreateAnomalyMonitor",
+        "ce:GetAnomalyMonitors",
+        "ce:DeleteAnomalyMonitor",
+        "ce:CreateAnomalySubscription",
+        "ce:GetAnomalySubscriptions",
+        "ce:DeleteAnomalySubscription"
       ]
       // To harden
       Resource = "*"

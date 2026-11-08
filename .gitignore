@@ -2,3 +2,4 @@ Documentation/.obsidian/*
 *.tfvars
 .ansible
 **/inventory.ini
+.agents
