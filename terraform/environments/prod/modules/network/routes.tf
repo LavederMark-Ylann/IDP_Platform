@@ -43,3 +43,9 @@ resource "aws_route_table_association" "private_rta" {
   subnet_id      = each.value.id
   route_table_id = aws_route_table.private_routing_table.id
 }
+
+resource "aws_route" "private_nat_route" {
+  route_table_id         = aws_route_table.private_routing_table.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.nat_gateway.id
+}
